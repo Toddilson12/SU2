@@ -1163,6 +1163,7 @@ private:
   array<su2double, N_POLY_COEFFS> cp_polycoeffs{{0.0}};  /*!< \brief Array for specific heat polynomial coefficients. */
   array<su2double, N_POLY_COEFFS> mu_polycoeffs{{0.0}};  /*!< \brief Array for viscosity polynomial coefficients. */
   array<su2double, N_POLY_COEFFS> kt_polycoeffs{{0.0}};  /*!< \brief Array for thermal conductivity polynomial coefficients. */
+  CpPolynomial_ParsedOptions cpPolynomial_ParsedOptions; /*!< \brief Options for polynomial Cp model.*/
   bool Body_Force;                      /*!< \brief Flag to know if a body force is included in the formulation. */
 
   struct CMUSCLRampParam {
@@ -4100,6 +4101,13 @@ public:
    * \brief Returns the options of the Cantera detailed chemistry model.
    */
   const CanteraOptions& GetCanteraParsedOptions() const { return cantera_ParsedOptions; }
+
+  /*!
+   * \brief Get parsed option data structure for polynomial Cp model.
+   * \return option data structure for polynomial Cp model.
+   */
+  const CpPolynomial_ParsedOptions& GetCpPolynomialParsedOptions() const { return cpPolynomial_ParsedOptions; }
+
 
   /*!
    * \brief Returns the transport model used in Cantera.

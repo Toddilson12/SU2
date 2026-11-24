@@ -282,7 +282,15 @@ constexpr passivedouble COLORING_EFF_THRESH = 0.875;  /*!< \brief Below this val
    Cp(T) = b0 + b1*T + b2*T^2 + b3*T^3 + b4*T^4. By default, all coeffs
    are set to zero and will be properly non-dim. in the solver. ---*/
 constexpr int N_POLY_COEFFS = 5; /*!< \brief Number of coefficients in temperature polynomial fits for fluid models. */
-
+/*---- For the NASA temperature polynomial fit, the fluid model uses 9 coefficients, 7 for Cp and two integration constants
+  for enthalpy and entropy. The model is defined as:
+  Cp(T)/R = a1*T^-2 + a2*T^-1 + a3 + a4*T + a5*T^2 + a6*T^3 + a7*T^4
+  H(T)/(RT) = -a1*T^-2 + a2*ln(T)*T^-1 + a3 + (a4*T)/2 + (a5*T^2)/3 + (a6*T^3)/4 + (a7*T^4)/5 + b1*T^-1
+  S(T)/R = -a1*(T^-2)/2 - a2*T^-1 + a3*ln(T) + a4*T + (a5*T^2)/2 + (a6*T^3)/3 + (a7*T^4)/4 + b2
+  where R is the universal gas constant. The expressions are only accurate for a certain range of temperatures.
+  These coefficients are not non-dimensionalized. The expressions are computed with the dimensional temperature and the results
+  are non-dimensionalized. ---*/
+constexpr int N_NASA_COEFFS = 9; /*!< \brief Number of coefficients in temperature polynomial fit for the NASA thermodynamic model. */
 /*!
  * \brief Boolean answers
  */
@@ -1662,6 +1670,17 @@ struct CanteraOptions {
   su2double min_temperature = 500.0;               /*!< \brief Temperature below which the chemistry is skipped. */
   bool correction_velocity = true;                 /*!< \brief Correction velocity of the species diffusion fluxes. */
 };
+
+/*!
+ * \brief Structure containing parsed options for polynomial Cp model. Contains the dimensional data.
+ */
+struct CpPolynomial_ParsedOptions {
+  bool nasa_model = false; /*< \brief Use NASA 9-Coefficient thermodynamic model for Cp instead of the old 5 coefficient fit*/
+  su2double* coefficients = nullptr; /*< \brief Coefficients for Cp(T) polynomial expression. Includes integration constants for NASA. */
+  unsigned short n_coeffs = 0; /*< \brief Number of polynomial coefficients for the Cp(T) expression, including integration constants for NASA.*/
+  std::array<su2double, 2> temperature_limits{{0.0, 0.0}}; /*< \brief Minimum and maximum temperatures for the Cp(T) expression.*/
+};
+
 
 /*!
  * \brief Types of subgrid scale models

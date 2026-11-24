@@ -1411,10 +1411,19 @@ void CConfig::SetConfig_Options() {
   /* DESCRIPTION: default value for AIR */
   addDoubleListOption("THERMAL_CONDUCTIVITY_CONSTANT", nThermal_Conductivity_Constant , Thermal_Conductivity_Constant);
 
+  /*!\par CONFIG_CATEGORY: Polynomial Cp model \ingroup Config*/
+  /*!\brief CP_NASA \n DESCRIPTION: Enable NASA 9-Coefficient Model \n OPTIONS: YES, NO \n DEFAULT: NO \ingroup Config*/
+  addBoolOption("CP_NASA", cpPolynomial_ParsedOptions.nasa_model, false);
+  /*!\brief CP_POLYCOEFFS \n DESCRIPTION: Temperature polynomial coefficients for specific heat Cp. Default is 5 coefficients. Requires 9 coefficients when CP_NASA is enabled. \ingroup Config*/
+  addDoubleListOption("CP_POLYCOEFFS", cpPolynomial_ParsedOptions.n_coeffs, cpPolynomial_ParsedOptions.coefficients);
+  /*!\brief TEMPERATURE_LIMITS_NASA \n DESCRIPTION: Temperature limits for the NASA 9-coefficients thermodynamic model \n DEFAULT: 200K, 800K \ingroup Config*/
+  cpPolynomial_ParsedOptions.temperature_limits[0] = 200.0; cpPolynomial_ParsedOptions.temperature_limits[1] = 800.0;
+  addDoubleArrayOption("TEMPERATURE_LIMITS_NASA", 2, false, cpPolynomial_ParsedOptions.temperature_limits.data());
+
   /*--- Options related to temperature polynomial coefficients for fluid models. ---*/
 
   /* DESCRIPTION: Definition of the temperature polynomial coefficients for specific heat Cp. */
-  addDoubleArrayOption("CP_POLYCOEFFS", N_POLY_COEFFS, false, cp_polycoeffs.data());
+  //addDoubleArrayOption("CP_POLYCOEFFS", N_POLY_COEFFS, false, cp_polycoeffs.data());
   /* DESCRIPTION: Definition of the temperature polynomial coefficients for specific heat Cp. */
   addDoubleArrayOption("MU_POLYCOEFFS", N_POLY_COEFFS, false, mu_polycoeffs.data());
   /* DESCRIPTION: Definition of the temperature polynomial coefficients for specific heat Cp. */
@@ -5573,12 +5582,30 @@ void CConfig::SetPostprocessing(SU2_COMPONENT val_software, unsigned short val_i
   }
 
   if ((Kind_Solver == MAIN_SOLVER::INC_EULER || Kind_Solver == MAIN_SOLVER::INC_NAVIER_STOKES || Kind_Solver == MAIN_SOLVER::INC_RANS) && (Kind_FluidModel == INC_IDEAL_GAS_POLY)) {
-    su2double sum = 0.0;
-    for (unsigned short iVar = 0; iVar < N_POLY_COEFFS; iVar++) {
-      sum += GetCp_PolyCoeff(iVar);
-    }
-    if ((N_POLY_COEFFS < 1) || (sum == 0.0))
+    if(cpPolynomial_ParsedOptions.n_coeffs == 0)
       SU2_MPI::Error(string("CP_POLYCOEFFS not set for fluid model INC_IDEAL_GAS_POLY. \n"), CURRENT_FUNCTION);
+
+    if(cpPolynomial_ParsedOptions.nasa_model){
+      const su2double Tmin = cpPolynomial_ParsedOptions.temperature_limits[0];
+      const su2double Tmax = cpPolynomial_ParsedOptions.temperature_limits[1];
+
+      if(Tmin <= 0.0 || Tmax <= Tmin){
+        SU2_MPI::Error(string("TEMPERATURE_LIMITS_NASA has invalid temperature limits."), CURRENT_FUNCTION);
+      }
+
+      if(cpPolynomial_ParsedOptions.n_coeffs != N_NASA_COEFFS)
+        SU2_MPI::Error(string("CP_POLYCOEFFS has invalid number of coefficients for CP_NASA (9 coefficients required)"), CURRENT_FUNCTION);
+    } else{
+      if(cpPolynomial_ParsedOptions.n_coeffs != N_POLY_COEFFS)
+        SU2_MPI::Error(string("CP_POLYCOEFFS has invalid number of coefficients (5 coefficients required)"), CURRENT_FUNCTION);
+    }
+
+    //su2double sum = 0.0;
+    //for (unsigned short iVar = 0; iVar < nCpPolyCoeffs; iVar++) {
+    //  sum += GetCp_PolyCoeff(iVar);
+    //}
+    //if ((N_POLY_COEFFS < 1) || (sum == 0.0))
+    //  SU2_MPI::Error(string("CP_POLYCOEFFS not set for fluid model INC_IDEAL_GAS_POLY. \n"), CURRENT_FUNCTION);
   }
 
   if (((Kind_Solver == MAIN_SOLVER::INC_EULER || Kind_Solver == MAIN_SOLVER::INC_NAVIER_STOKES || Kind_Solver == MAIN_SOLVER::INC_RANS)) && (Kind_ViscosityModel == VISCOSITYMODEL::POLYNOMIAL)) {
