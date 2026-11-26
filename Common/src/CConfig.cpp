@@ -1416,6 +1416,7 @@ void CConfig::SetConfig_Options() {
   addBoolOption("CP_NASA", cpPolynomial_ParsedOptions.nasa_model, false);
   /*!\brief CP_POLYCOEFFS \n DESCRIPTION: Temperature polynomial coefficients for specific heat Cp. Default is 5 coefficients. Requires 9 coefficients when CP_NASA is enabled. \ingroup Config*/
   addDoubleListOption("CP_POLYCOEFFS", cpPolynomial_ParsedOptions.n_coeffs, cpPolynomial_ParsedOptions.coefficients);
+  CpPolyCoefficientsND.resize(cpPolynomial_ParsedOptions.n_coeffs);
   /*!\brief TEMPERATURE_LIMITS_NASA \n DESCRIPTION: Temperature limits for the NASA 9-coefficients thermodynamic model \n DEFAULT: 200K, 800K \ingroup Config*/
   cpPolynomial_ParsedOptions.temperature_limits[0] = 200.0; cpPolynomial_ParsedOptions.temperature_limits[1] = 800.0;
   addDoubleArrayOption("TEMPERATURE_LIMITS_NASA", 2, false, cpPolynomial_ParsedOptions.temperature_limits.data());
