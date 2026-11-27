@@ -1,6 +1,6 @@
 /*!
- * \file CIdealGas.cpp
- * \brief Source of the ideal gas model.
+ * \file CIdealGasNASA.cpp
+ * \brief Source of the ideal gas with NASA 9-coefficient polynomial model.
  * \author E. L. Gevard
  * \version 8.6.0 "Harrier"
  *
@@ -50,11 +50,11 @@ void CIdealGasNASA::SetCpModel(const CConfig* config, su2double val_Temperature_
         non-dim. gas constant. ---*/
         coeffs_[i] = config->GetCp_PolyCoeffND(i) * config->GetGas_ConstantND(); 
     }
-    /*--- Non-dim. temperatures---*/
+    /*--- Non-dim. temperatures ---*/
     Temperature_Min = CpPolyOptions.temperature_limits[0] / val_Temperature_Ref;
     Temperature_Max = CpPolyOptions.temperature_limits[1] / val_Temperature_Ref;
 
-    /*--- Precompute reference enthalpy for sensible enthalpy (incompressible)---*/
+    /*--- Precompute reference enthalpy for sensible enthalpy (incompressible) ---*/
     Compute_CpH(Std_Ref_Temp_ND, Cp, Enthalpy_Ref);
 }
 
@@ -85,7 +85,7 @@ void CIdealGasNASA::SetTDState_h(su2double val_enthalpy, const su2double* val_sc
     su2double Enthalpy_iter = 0.0;
     su2double delta_temp_iter = 1e10;
     su2double delta_enthalpy_iter;
-    const int counter_limit = 20;
+    const int counter_limit = 30;
 
     int counter = 0;
 
@@ -95,25 +95,29 @@ void CIdealGasNASA::SetTDState_h(su2double val_enthalpy, const su2double* val_sc
       
       /*--- Compute sensible enthalpy ---*/
       Compute_CpH(temp_iter, Cp_iter, Enthalpy_iter);
-      Enthalpy -= Enthalpy_Ref;
+      Enthalpy_iter -= Enthalpy_Ref;
 
       delta_enthalpy_iter = Enthalpy - Enthalpy_iter;
+      
+      /*--- Calculate clamped temperature if it is outside range. Ensures delta_temp_iter
+            is calculated based on the clamped temperature and prevents breaking early due to toll ---*/
+      const su2double next_temp = max(min(temp_iter + delta_enthalpy_iter / Cp_iter, Temperature_Max), Temperature_Min);
+      delta_temp_iter = next_temp - temp_iter;
 
-      delta_temp_iter = delta_enthalpy_iter / Cp_iter;
-
-      temp_iter += delta_temp_iter;
-      if (temp_iter < Temperature_Min || temp_iter > Temperature_Max) {
-        cout << "Warning: temperature outside valid range for NASA polynomials during Newton-Raphson." << endl;
-        temp_iter = Temperature_Min;
-        break;
-      }
+      temp_iter = next_temp;
+    }
+    
+    if (temp_iter == Temperature_Min || temp_iter == Temperature_Max) {
+      cout << "Warning: temperature outside valid range for NASA polynomials during Newton-Raphson." << endl;
     }
 
-    Temperature = temp_iter;
-    Cp = Cp_iter;
     if (counter == counter_limit) {
       cout << "Warning: Newton-Raphson exceeds max. iterations in temperature computation." << endl;
     }
+
+    Temperature = temp_iter;
+    Compute_CpH(Temperature, Cp, Enthalpy_iter); /* use Enthalpy_iter as Enthalpy is already prescribed */
+
     Density = Pressure / (Temperature * Gas_Constant);
     Cv = Cp / Gamma;
 }
@@ -124,15 +128,15 @@ void CIdealGasNASA::Compute_CpH(su2double t, su2double& cp, su2double& h)
     const auto& A = coeffs_;
     const su2double invT = 1.0 / t;
 
-    // T^-2 and T^-1 terms -> A1, A2
+    /*--- T^-2 and T^-1 terms -> A1, A2 ---*/
     cp = A[0] * invT * invT + A[1] * invT;
 
-    h = -A[0] * invT + A[1] * log(t) + A[7]; // A[7] = A8 = enthalpy integration constant
+    h = -A[0] * invT + A[1] * log(t) + A[7]; /*--- A[7] = b1 = enthalpy integration constant ---*/
 
-    // T^0 to T^4 terms -> A3 to A7
+    /*--- T^0 to T^4 terms -> A3 to A7 ---*/
     su2double T_i = 1.0;
 
-    //Only computes a reference enthalpy, without the integration constant
+    /*--- Only computes a reference enthalpy, without the integration constant ---*/
     for (unsigned short i = 2; i < 7; i++) {
         cp += A[i] * T_i;
 

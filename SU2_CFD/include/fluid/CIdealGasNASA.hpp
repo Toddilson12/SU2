@@ -1,6 +1,6 @@
 ﻿/*!
  * \file CIdealGasNASA.hpp
- * \brief Defines the ideal gas with NASA 9-coefficient polynomial model 
+ * \brief Defines the ideal gas with NASA 9-coefficient polynomial model.
  * \author E. L. Gevard
  * \version 8.6.0 "Harrier"
  *
@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include <iostream>
 #include "CFluidModel.hpp"
 
 using namespace std;
@@ -36,7 +35,6 @@ using namespace std;
  * \class CIdealGasNASA
  * \brief Child class for defining the ideal gas with NASA 9-coefficient polynomial model
  * \author: E. L. Gevard
- * adicionar a formulacao e referencia
  */
 
 class CIdealGasNASA final : public CFluidModel{
